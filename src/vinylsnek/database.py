@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, Date, create_engine
-from sqlalchemy.orm import declarative_base, Session
 from datetime import date
+
+from sqlalchemy import Column, Date, Float, Integer, String, create_engine
+from sqlalchemy.orm import Session, declarative_base
 from tabulate import tabulate
 
 from .client import USER_TOKEN, VinylSnekClient
@@ -60,7 +61,7 @@ class VinylSnekDatabase:
             "Year",
             "Description",
             "Lowest Price (Discogs)",
-            "Discogs Release ID"
+            "Discogs Release ID",
         ]
         content = []
         with Session(self.engine) as session:

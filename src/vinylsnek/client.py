@@ -1,7 +1,7 @@
 import json
 from pprint import pprint
-import requests
 
+import requests
 from discogs_client import Client as client  # type: ignore
 from discogs_client import Release  # type: ignore
 from pydantic import BaseModel
@@ -54,7 +54,7 @@ class VinylSnekClient(client):
         for code in barcodes:
             results = self.search(code, type="barcode")
             if results:
-                ids.append(results[0].id)   # Pick first :D
+                ids.append(results[0].id)  # Pick first :D
         return ids
 
     def get_release_by_id(self, release_id: int) -> dict[str, str]:
