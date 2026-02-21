@@ -28,11 +28,11 @@ def from_release(release: Release, highest_price: float | None = None) -> "Relea
         name = format.get("name")
         qty = format.get("qty")
         if all([text, name, qty]):
-            descriptions.append(f"{format['text']} {format['name']} x{format['qty']}")
+            text = text.replace(",", "")
+            name = name.replace(",", "")
+            descriptions.append(f"{text} {name} x{format['qty']}")
 
-    # content = vars(release)
-    # pprint(content)
-
+    print(f"{release.artists[0].name} - {release.title}")
     return ReleaseInfo(
         title=release.title,
         artists=[artist.name for artist in release.artists],

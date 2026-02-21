@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, declarative_base
 from tabulate import tabulate
 
 from .client import USER_TOKEN, VinylSnekClient
+from .table_model import RecordModel
 
 Base = declarative_base()
 
@@ -24,13 +25,13 @@ class Record(Base):
 
 
 class VinylSnekDatabase:
-    def __init__(self, db_path: str = "catalog.db"):
+    def __init__(self, db_path: str = "catalog.db") -> None:
         engine = create_engine(f"sqlite:///{db_path}")
         Base.metadata.create_all(engine)
         self.engine = engine
         self.snek = VinylSnekClient(USER_TOKEN)
 
-    def add_vinyl(self, barcodes: list[str]):
+    def add_vinyl(self, barcodes: list[str]) -> None:
         release_ids = self.snek.get_id_by_barcodes(barcodes)
         records = []
 
@@ -54,7 +55,7 @@ class VinylSnekDatabase:
                 session.add(record)
             session.commit()
 
-    def print_table(self):
+    def print_table(self) -> None:
         headers = [
             "Artist",
             "Album",
@@ -78,3 +79,20 @@ class VinylSnekDatabase:
                     ]
                 )
         print(tabulate(content, headers=headers, tablefmt="fancy_grid"))
+
+    def as_table_model(self):
+        with Session(self.engine) as session:
+            records = session.query(Record).all()
+            return RecordModel(
+                [
+                    {
+                        "artist": record.artist,
+                        "album": record.album,
+                        "year": record.year,
+                        "description": record.description.replace(", ", "\n"),
+                        "lowest_price_discogs": record.lowest_price_discogs,
+                        "discogs_release_id": record.discogs_release_id,
+                    }
+                    for record in records
+                ]
+            )
