@@ -54,10 +54,14 @@ class VinylSnekDatabase:
             for record in records:
                 session.add(record)
             session.commit()
-    
+
     def delete_vinyl(self, discogs_release_id: int) -> None:
         with Session(self.engine) as session:
-            record = session.query(Record).filter_by(discogs_release_id=discogs_release_id).first()
+            record = (
+                session.query(Record)
+                .filter_by(discogs_release_id=discogs_release_id)
+                .first()
+            )
             if record:
                 session.delete(record)
                 session.commit()

@@ -1,17 +1,9 @@
 import qdarktheme
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
-    QApplication,
-    QDialog,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QPushButton,
-    QTableView,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel,
+                             QLineEdit, QMainWindow, QPushButton, QTableView,
+                             QVBoxLayout, QWidget)
+
 from .database import VinylSnekDatabase
 
 
@@ -83,7 +75,7 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(remove_button)
         button_layout.addWidget(filter_button)
         layout.addLayout(button_layout)
-    
+
     def open_add_record_dialog(self):
         dialog = AddRecordDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -91,11 +83,15 @@ class MainWindow(QMainWindow):
             self.db.add_vinyl([barcode])
 
             updated_records = self.db.as_table_model()
-            new_records = [r for r in updated_records.records_list if r not in self.records_model.records_list]
+            new_records = [
+                r
+                for r in updated_records.records_list
+                if r not in self.records_model.records_list
+            ]
             self.records_model.layoutAboutToBeChanged.emit()
             self.records_model.records_list.extend(new_records)
             self.records_model.layoutChanged.emit()
-    
+
     def remove_selected_record(self):
         selected_indexes = self.table_view.selectedIndexes()
         if not selected_indexes:
