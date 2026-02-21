@@ -70,9 +70,15 @@ class MainWindow(QMainWindow):
         remove_button = QPushButton("Remove Record")
         remove_button.clicked.connect(self.remove_selected_record)
 
+        edit_button = QPushButton("Edit Record")
+        edit_button.clicked.connect(self.edit_selected_record)
+
         filter_button = QPushButton("Filter Records")
+        filter_button.clicked.connect(self.filter_records)
+
         button_layout.addWidget(add_button)
         button_layout.addWidget(remove_button)
+        button_layout.addWidget(edit_button)
         button_layout.addWidget(filter_button)
         layout.addLayout(button_layout)
 
@@ -102,6 +108,14 @@ class MainWindow(QMainWindow):
         self.records_model.layoutAboutToBeChanged.emit()
         self.records_model.records_list.pop(row_index)
         self.records_model.layoutChanged.emit()
+    
+    def edit_selected_record(self):
+        # TODO: Implement edit functionality
+        pass
+
+    def filter_records(self):
+        # TODO: Implement filter functionality
+        pass
 
 
 def main():
