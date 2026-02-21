@@ -23,6 +23,7 @@ class ReleaseInfo(BaseModel):
 def from_release(release: Release, highest_price: float | None = None) -> "ReleaseInfo":
 
     descriptions: list[str] = []
+    # TODO: Handle also 7" formats, etc. (desciptions should be more detailed)
     for format in release.formats:
         text = format.get("text")
         name = format.get("name")
