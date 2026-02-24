@@ -8,6 +8,17 @@ from pydantic import BaseModel
 
 USER_TOKEN = "cRTiVuCPHVEytVezUxVuKIVXQCzOePcZlMBgFfLJ"
 
+def get_release_lowest_price(release_id: int) -> float | None:
+    response = requests.get(
+        f"https://api.discogs.com/marketplace/stats/{release_id}",
+        headers={"Authorization": f"Discogs token={USER_TOKEN}",
+                    "User-Agent": "VinylSnek/0.1"},
+    )
+    if response.status_code == 200:
+        data = response.json()
+        return data.get("lowest_price", {}).get("value")
+    else:
+        print(response.status_code, response.text)
 
 class ReleaseInfo(BaseModel):
     title: str
@@ -42,7 +53,6 @@ def from_release(release: Release, highest_price: float | None = None) -> "Relea
             break
 
     print(f"{release.artists[0].name} - {release.title}")
-    print(release.data.get("cover_image"))
     return ReleaseInfo(
         title=release.title,
         artists=[artist.name for artist in release.artists],
@@ -50,7 +60,7 @@ def from_release(release: Release, highest_price: float | None = None) -> "Relea
         styles=release.styles,
         description=descriptions,
         highest_price_discogs=highest_price,
-        lowest_price_discogs=release.data.get("lowest_price"),
+        lowest_price_discogs=get_release_lowest_price(release.id),
         discogs_release_id=release.id,
         record_cover_url=release.data.get("cover_image"),
         discogs_url="https://www.discogs.com/release/" + str(release.id),
