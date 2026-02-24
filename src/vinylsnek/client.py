@@ -1,24 +1,26 @@
-import json
-from pprint import pprint
-
 import requests
+from os import getenv
 from discogs_client import Client as client  # type: ignore
 from discogs_client import Release  # type: ignore
 from pydantic import BaseModel
 
-USER_TOKEN = "cRTiVuCPHVEytVezUxVuKIVXQCzOePcZlMBgFfLJ"
+USER_TOKEN = getenv("DISCOGS_USER_TOKEN")
+
 
 def get_release_lowest_price(release_id: int) -> float | None:
     response = requests.get(
         f"https://api.discogs.com/marketplace/stats/{release_id}",
-        headers={"Authorization": f"Discogs token={USER_TOKEN}",
-                    "User-Agent": "VinylSnek/0.1"},
+        headers={
+            "Authorization": f"Discogs token={USER_TOKEN}",
+            "User-Agent": "VinylSnek/0.1",
+        },
     )
     if response.status_code == 200:
         data = response.json()
         return data.get("lowest_price", {}).get("value")
     else:
         print(response.status_code, response.text)
+
 
 class ReleaseInfo(BaseModel):
     title: str
