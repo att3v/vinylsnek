@@ -12,7 +12,6 @@ class RecordModel(QAbstractTableModel):
             "Year",
             "Description",
             "Lowest Price (Discogs)",
-            "Discogs Release ID",
         ]
 
     def rowCount(self, parent=None):
@@ -49,8 +48,6 @@ class RecordModel(QAbstractTableModel):
                     if record["lowest_price_discogs"]
                     else "N/A"
                 )
-            elif col == 5:
-                return str(record["discogs_release_id"])
         return None
 
     def sort(
@@ -66,7 +63,6 @@ class RecordModel(QAbstractTableModel):
                 if r.get("lowest_price_discogs")
                 else float("inf")
             ),
-            5: lambda r: (r.get("discogs_release_id") or 0),
         }
         key = key_map.get(column, lambda r: r)
         reverse = order == Qt.SortOrder.DescendingOrder

@@ -18,6 +18,8 @@ class ReleaseInfo(BaseModel):
     highest_price_discogs: float | None
     lowest_price_discogs: float | None
     discogs_release_id: int
+    record_cover_url: str | None
+    discogs_url: str | None = None
 
 
 def from_release(release: Release, highest_price: float | None = None) -> "ReleaseInfo":
@@ -33,7 +35,14 @@ def from_release(release: Release, highest_price: float | None = None) -> "Relea
             name = name.replace(",", "")
             descriptions.append(f"{text} {name} x{format['qty']}")
 
+    images = release.data.get("images", [])
+    for image in images:
+        if image.get("type") == "primary" and image.get("uri"):
+            release.data["cover_image"] = image["uri"]
+            break
+
     print(f"{release.artists[0].name} - {release.title}")
+    print(release.data.get("cover_image"))
     return ReleaseInfo(
         title=release.title,
         artists=[artist.name for artist in release.artists],
@@ -43,6 +52,8 @@ def from_release(release: Release, highest_price: float | None = None) -> "Relea
         highest_price_discogs=highest_price,
         lowest_price_discogs=release.data.get("lowest_price"),
         discogs_release_id=release.id,
+        record_cover_url=release.data.get("cover_image"),
+        discogs_url="https://www.discogs.com/release/" + str(release.id),
     )
 
 

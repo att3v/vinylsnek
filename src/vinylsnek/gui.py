@@ -1,5 +1,9 @@
+import webbrowser
+
 import qdarktheme
+import requests
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel,
                              QLineEdit, QMainWindow, QPushButton, QTableView,
                              QVBoxLayout, QWidget)
@@ -15,13 +19,11 @@ class AddRecordDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        # Barcode label and input
         label = QLabel("Record Barcode:")
         self.barcode_input = QLineEdit()
         layout.addWidget(label)
         layout.addWidget(self.barcode_input)
 
-        # Submit button
         submit_button = QPushButton("Submit")
         submit_button.clicked.connect(self.accept)
         layout.addWidget(submit_button)
@@ -36,28 +38,83 @@ class RecordDetailsDialog(QDialog):
     def __init__(self, record, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Record Details")
-        self.setGeometry(200, 200, 400, 300)
+        self.setGeometry(200, 200, 700, 300)
         self.setWindowModality(Qt.WindowModality.NonModal)
 
-        layout = QVBoxLayout()
+        master_layout = QVBoxLayout()
 
+        layout = QHBoxLayout()
+
+        left_layout = QVBoxLayout()
+        if cover_url := record.get("record_cover_url"):
+            try:
+                headers = {
+                    "User-Agent": "VinylSnek/0.1 +https://github.com/att3v/vinylsnek"
+                }
+                response = requests.get(cover_url, timeout=5, headers=headers)
+                if response.status_code == 200:
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(response.content)
+                    if not pixmap.isNull():
+                        cover_label = QLabel()
+                        cover_label.setPixmap(
+                            pixmap.scaledToWidth(
+                                250, Qt.TransformationMode.SmoothTransformation
+                            )
+                        )
+                        left_layout.addWidget(cover_label)
+                    else:
+                        error_label = QLabel("Could not load cover art (invalid image)")
+                        left_layout.addWidget(error_label)
+                else:
+                    error_label = QLabel(
+                        f"Failed to load image (HTTP {response.status_code})"
+                    )
+                    left_layout.addWidget(error_label)
+            except Exception as e:
+                error_label = QLabel(f"Could not load cover art: {str(e)}")
+                left_layout.addWidget(error_label)
+        else:
+            error_label = QLabel("No cover art available")
+            left_layout.addWidget(error_label)
+
+        left_layout.addStretch()
+        layout.addLayout(left_layout)
+
+        right_layout = QVBoxLayout()
         for key, value in record.items():
+            if key in ["record_cover_url"]:
+                continue
             detail_layout = QHBoxLayout()
             label = QLabel(f"{key.capitalize()}:")
             label.setMinimumWidth(150)
-            value_label = QLabel(str(value))
-            value_label.setWordWrap(True)
+
+            if key == "discogs_url" and value:
+                link_button = QPushButton("Open on Discogs")
+                link_button.clicked.connect(
+                    lambda checked, url=value: webbrowser.open(url)
+                )
+                value_label = link_button
+            else:
+                value_label = QLabel(str(value))
+                value_label.setWordWrap(True)
+
             detail_layout.addWidget(label)
             detail_layout.addWidget(value_label)
-            layout.addLayout(detail_layout)
+            right_layout.addLayout(detail_layout)
 
-        layout.addStretch()
+        right_layout.addStretch()
+        layout.addLayout(right_layout)
 
+        master_layout.addLayout(layout)
+
+        button_layout = QHBoxLayout()
         close_button = QPushButton("Close")
-        close_button.clicked.connect(self.accept)
-        layout.addWidget(close_button)
+        close_button.clicked.connect(self.close)
+        button_layout.addWidget(close_button)
+        master_layout.addLayout(button_layout)
 
-        self.setLayout(layout)
+        self.setLayout(master_layout)
 
 
 class MainWindow(QMainWindow):

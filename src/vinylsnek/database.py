@@ -22,6 +22,8 @@ class Record(Base):
     lowest_price_discogs = Column(Float)
     discogs_release_id = Column(Integer)
     date_purchased = Column(Date)
+    release_cover_url = Column(String)
+    discogs_url = Column(String)
 
 
 class VinylSnekDatabase:
@@ -47,6 +49,8 @@ class VinylSnekDatabase:
                     lowest_price_discogs=release_info.lowest_price_discogs,
                     discogs_release_id=release_info.discogs_release_id,
                     date_purchased=date.today(),
+                    release_cover_url=release_info.record_cover_url,
+                    discogs_url=release_info.discogs_url,
                 )
                 records.append(record)
 
@@ -103,6 +107,8 @@ class VinylSnekDatabase:
                         "description": record.description.replace(", ", "\n"),
                         "lowest_price_discogs": record.lowest_price_discogs,
                         "discogs_release_id": record.discogs_release_id,
+                        "record_cover_url": record.release_cover_url,
+                        "discogs_url": record.discogs_url,
                     }
                     for record in records
                 ]
