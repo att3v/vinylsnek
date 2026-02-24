@@ -1,25 +1,8 @@
 import requests
 from os import getenv
-from discogs_client import Client as client  # type: ignore
-from discogs_client import Release  # type: ignore
 from pydantic import BaseModel
 
 USER_TOKEN = getenv("DISCOGS_USER_TOKEN")
-
-
-def get_release_lowest_price(release_id: int) -> float | None:
-    response = requests.get(
-        f"https://api.discogs.com/marketplace/stats/{release_id}",
-        headers={
-            "Authorization": f"Discogs token={USER_TOKEN}",
-            "User-Agent": "VinylSnek/0.1",
-        },
-    )
-    if response.status_code == 200:
-        data = response.json()
-        return data.get("lowest_price", {}).get("value")
-    else:
-        print(response.status_code, response.text)
 
 
 class ReleaseInfo(BaseModel):
@@ -35,69 +18,80 @@ class ReleaseInfo(BaseModel):
     discogs_url: str | None = None
 
 
-def from_release(release: Release, highest_price: float | None = None) -> "ReleaseInfo":
-
-    descriptions: list[str] = []
-    # TODO: Handle also 7" formats, etc. (desciptions should be more detailed)
-    for format in release.formats:
-        text = format.get("text")
-        name = format.get("name")
-        qty = format.get("qty")
-        if all([text, name, qty]):
-            text = text.replace(",", "")
-            name = name.replace(",", "")
-            descriptions.append(f"{text} {name} x{format['qty']}")
-
-    images = release.data.get("images", [])
-    for image in images:
-        if image.get("type") == "primary" and image.get("uri"):
-            release.data["cover_image"] = image["uri"]
-            break
-
-    print(f"{release.artists[0].name} - {release.title}")
-    return ReleaseInfo(
-        title=release.title,
-        artists=[artist.name for artist in release.artists],
-        year=release.year,
-        styles=release.styles,
-        description=descriptions,
-        highest_price_discogs=highest_price,
-        lowest_price_discogs=get_release_lowest_price(release.id),
-        discogs_release_id=release.id,
-        record_cover_url=release.data.get("cover_image"),
-        discogs_url="https://www.discogs.com/release/" + str(release.id),
-    )
-
-
-class VinylSnekClient(client):
-    def __init__(self, user_token):
-        client.__init__(self, "VinylSnek/0.1", user_token=user_token)
+class VinylSnekClient:
+    def __init__(self, user_token: str):
+        self.api_base_url = "https://api.discogs.com"
+        self.headers = {
+            "Authorization": f"Discogs token={user_token}",
+            "User-Agent": "VinylSnek/0.1",
+        }
 
     def get_id_by_barcodes(self, barcodes: list[str]) -> list[int] | None:
         ids = []
         for code in barcodes:
-            results = self.search(code, type="barcode")
+            results = (
+                requests.get(
+                    self.api_base_url + "/database/search",
+                    params={"barcode": code},
+                    headers=self.headers,
+                )
+                .json()
+                .get("results", [])
+            )
             if results:
-                ids.append(results[0].id)  # Pick first :D
+                ids.append(results[0].get("id"))  # Pick first :D
         return ids
 
     def get_release_by_id(self, release_id: int) -> dict[str, str]:
-        release = self.release(release_id)
-        # highest_price = self.get_price_suggestion_by_id(release_id)
-        return from_release(release)
+        release = requests.get(
+            self.api_base_url + f"/releases/{release_id}", headers=self.headers
+        ).json()
+        return self.from_release(release)
 
-    # def get_price_suggestion_by_id(self, release_id: int) -> float | None:
-    #     print(release_id)
-    #     response = requests.get(
-    #         f"https://api.discogs.com/marketplace/price_suggestions/{release_id}",
-    #         headers={"Authorization": f"Discogs token={USER_TOKEN}"},
-    #     )
-    #     print(response.status_code)
-    #     if response.status_code == 200:
-    #         data = response.json()
-    #         pprint(data)
-    #         if "listings" in data and len(data["listings"]) > 0:
-    #             return max(listing["price"] for listing in data["listings"])
+    def get_release_lowest_price(self, release_id: int) -> float | None:
+        response = requests.get(
+            self.api_base_url + f"/marketplace/stats/{release_id}",
+            headers=self.headers,
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("lowest_price", {}).get("value")
+        else:
+            print(response.status_code, response.text)
+
+    def from_release(
+        self, release: dict, highest_price: float | None = None
+    ) -> "ReleaseInfo":
+        descriptions: list[str] = []
+        # TODO: Handle also 7" formats, etc. (desciptions should be more detailed)
+        for format in release.get("formats", []):
+            text = format.get("text")
+            name = format.get("name")
+            qty = format.get("qty")
+            if all([text, name, qty]):
+                text = text.replace(",", "")
+                name = name.replace(",", "")
+                descriptions.append(f"{text} {name} x{format['qty']}")
+
+        images = release.get("data", {}).get("images", [])
+        for image in images:
+            if image.get("type") == "primary" and image.get("uri"):
+                release.get("data", {})["cover_image"] = image["uri"]
+                break
+
+        print(f"{release['artists'][0]['name']} - {release['title']}")
+        return ReleaseInfo(
+            title=release["title"],
+            artists=[artist["name"] for artist in release.get("artists", [])],
+            year=release.get("year"),
+            styles=release.get("styles", []),
+            description=descriptions,
+            highest_price_discogs=highest_price,
+            lowest_price_discogs=self.get_release_lowest_price(release.get("id")),
+            discogs_release_id=release.get("id"),
+            record_cover_url=release.get("data", {}).get("cover_image"),
+            discogs_url="https://www.discogs.com/release/" + str(release.get("id")),
+        )
 
 
 if __name__ == "__main__":
