@@ -50,7 +50,7 @@ class RecordDetailsDialog(QDialog):
             detail_layout.addWidget(label)
             detail_layout.addWidget(value_label)
             layout.addLayout(detail_layout)
-        
+
         layout.addStretch()
 
         close_button = QPushButton("Close")
@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(edit_button)
         button_layout.addWidget(filter_button)
         layout.addLayout(button_layout)
-    
+
     def on_row_double_clicked(self, index):
         row_index = index.row()
         record = self.records_model.records_list[row_index]
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
         self.records_model.layoutAboutToBeChanged.emit()
         self.records_model.records_list.pop(row_index)
         self.records_model.layoutChanged.emit()
-    
+
     def edit_selected_record(self):
         # TODO: Implement edit functionality
         pass
