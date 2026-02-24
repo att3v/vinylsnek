@@ -32,11 +32,40 @@ class AddRecordDialog(QDialog):
         return self.barcode_input.text()
 
 
+class RecordDetailsDialog(QDialog):
+    def __init__(self, record, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Record Details")
+        self.setGeometry(200, 200, 400, 300)
+        self.setWindowModality(Qt.WindowModality.NonModal)
+
+        layout = QVBoxLayout()
+
+        for key, value in record.items():
+            detail_layout = QHBoxLayout()
+            label = QLabel(f"{key.capitalize()}:")
+            label.setMinimumWidth(150)
+            value_label = QLabel(str(value))
+            value_label.setWordWrap(True)
+            detail_layout.addWidget(label)
+            detail_layout.addWidget(value_label)
+            layout.addLayout(detail_layout)
+        
+        layout.addStretch()
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.accept)
+        layout.addWidget(close_button)
+
+        self.setLayout(layout)
+
+
 class MainWindow(QMainWindow):
     def __init__(self, records, db: VinylSnekDatabase):
         super().__init__()
         self.records_model = records
         self.db = db
+        self.detail_windows = []
         self.setWindowTitle("VinylSnek")
         self.setGeometry(100, 100, 1300, 600)
 
@@ -57,6 +86,7 @@ class MainWindow(QMainWindow):
         self.table_view.resizeRowsToContents()
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.table_view.doubleClicked.connect(self.on_row_double_clicked)
 
         self.records_model = table
         self.records_model.layoutChanged.connect(self.table_view.resizeRowsToContents)
@@ -81,6 +111,13 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(edit_button)
         button_layout.addWidget(filter_button)
         layout.addLayout(button_layout)
+    
+    def on_row_double_clicked(self, index):
+        row_index = index.row()
+        record = self.records_model.records_list[row_index]
+        dialog = RecordDetailsDialog(record, self)
+        dialog.show()
+        self.detail_windows.append(dialog)
 
     def open_add_record_dialog(self):
         dialog = AddRecordDialog(self)
