@@ -6,7 +6,7 @@ from discogs_client import Client as client  # type: ignore
 from discogs_client import Release  # type: ignore
 from pydantic import BaseModel
 
-USER_TOKEN = "cRTiVuCPHVEytVezUxVuKIVXQCzOePcZlMBgFfLJ"
+USER_TOKEN = "token"
 
 
 class ReleaseInfo(BaseModel):
