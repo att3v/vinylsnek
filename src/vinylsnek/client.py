@@ -11,7 +11,6 @@ class ReleaseInfo(BaseModel):
     year: int
     styles: list[str]
     description: list[str]
-    highest_price_discogs: float | None
     lowest_price_discogs: float | None
     discogs_release_id: int
     record_cover_url: str | None
@@ -59,9 +58,7 @@ class VinylSnekClient:
         else:
             print(response.status_code, response.text)
 
-    def from_release(
-        self, release: dict, highest_price: float | None = None
-    ) -> "ReleaseInfo":
+    def from_release(self, release: dict[str, str]) -> "ReleaseInfo":
         descriptions: list[str] = []
         # TODO: Handle also 7" formats, etc. (desciptions should be more detailed)
         for format in release.get("formats", []):
@@ -73,23 +70,22 @@ class VinylSnekClient:
                 name = name.replace(",", "")
                 descriptions.append(f"{text} {name} x{format['qty']}")
 
-        images = release.get("data", {}).get("images", [])
+        images = release.get("images", [])
         for image in images:
             if image.get("type") == "primary" and image.get("uri"):
-                release.get("data", {})["cover_image"] = image["uri"]
+                release["cover_image"] = image["uri"]
                 break
 
         print(f"{release['artists'][0]['name']} - {release['title']}")
         return ReleaseInfo(
-            title=release["title"],
-            artists=[artist["name"] for artist in release.get("artists", [])],
+            title=release.get("title"),
+            artists=[artist.get("name") for artist in release.get("artists", [])],
             year=release.get("year"),
             styles=release.get("styles", []),
             description=descriptions,
-            highest_price_discogs=highest_price,
             lowest_price_discogs=self.get_release_lowest_price(release.get("id")),
             discogs_release_id=release.get("id"),
-            record_cover_url=release.get("data", {}).get("cover_image"),
+            record_cover_url=release.get("cover_image"),
             discogs_url="https://www.discogs.com/release/" + str(release.get("id")),
         )
 

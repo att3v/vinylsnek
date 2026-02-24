@@ -18,7 +18,6 @@ class Record(Base):
     album = Column(String, nullable=False)
     year = Column(Integer)
     description = Column(String)
-    highest_price_discogs = Column(Float)
     lowest_price_discogs = Column(Float)
     discogs_release_id = Column(Integer)
     date_purchased = Column(Date)
@@ -45,7 +44,6 @@ class VinylSnekDatabase:
                     album=release_info.title,
                     year=release_info.year,
                     description=", ".join(release_info.description),
-                    highest_price_discogs=release_info.highest_price_discogs,
                     lowest_price_discogs=release_info.lowest_price_discogs,
                     discogs_release_id=release_info.discogs_release_id,
                     date_purchased=date.today(),

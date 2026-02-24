@@ -133,7 +133,7 @@ class MainWindow(QMainWindow):
         self.db = db
         self.detail_windows = []
         self.setWindowTitle("VinylSnek")
-        self.setGeometry(100, 100, 1300, 600)
+        self.setGeometry(100, 100, 1000, 600)
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
