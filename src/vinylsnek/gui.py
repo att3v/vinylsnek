@@ -3,7 +3,7 @@ import webbrowser
 import qdarktheme
 import requests
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -18,6 +18,16 @@ from PyQt6.QtWidgets import (
 )
 
 from .database import VinylSnekDatabase
+
+INFO_FIELD_TRANSLATIONS = {
+    "album": "Album",
+    "artist": "Artist",
+    "year": "Release Year",
+    "lowest_price_discogs": "Lowest Price (Discogs)",
+    "description": "Description",
+    "discogs_release_id": "Discogs Release ID",
+    "discogs_url": "",
+}
 
 
 class AddRecordDialog(QDialog):
@@ -95,7 +105,10 @@ class RecordDetailsDialog(QDialog):
             if key in ["record_cover_url"]:
                 continue
             detail_layout = QHBoxLayout()
-            label = QLabel(f"{key.capitalize()}:")
+            label = QLabel(f"{INFO_FIELD_TRANSLATIONS.get(key, key.capitalize())}")
+            label_font = label.font()
+            label_font.setBold(True)
+            label.setFont(label_font)
             label.setMinimumWidth(150)
 
             if key == "discogs_url" and value:
@@ -104,6 +117,21 @@ class RecordDetailsDialog(QDialog):
                     lambda checked, url=value: webbrowser.open(url)
                 )
                 value_label = link_button
+            elif key == "discogs_release_id":
+                value_layout = QHBoxLayout()
+                value_label = QLabel(str(value))
+                value_label.setWordWrap(True)
+                copy_button = QPushButton("📋")
+                copy_button.setMaximumWidth(40)
+                copy_button.clicked.connect(
+                    lambda checked, text=str(value): self.copy_to_clipboard(text)
+                )
+                value_layout.addWidget(value_label)
+                value_layout.addWidget(copy_button)
+                detail_layout.addWidget(label)
+                detail_layout.addLayout(value_layout)
+                right_layout.addLayout(detail_layout)
+                continue
             else:
                 value_label = QLabel(str(value))
                 value_label.setWordWrap(True)
@@ -124,6 +152,10 @@ class RecordDetailsDialog(QDialog):
         master_layout.addLayout(button_layout)
 
         self.setLayout(master_layout)
+
+    def copy_to_clipboard(self, text):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
 
 
 class MainWindow(QMainWindow):
