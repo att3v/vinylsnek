@@ -1,5 +1,6 @@
-import requests
 from os import getenv
+
+import requests
 from pydantic import BaseModel
 
 USER_TOKEN = getenv("DISCOGS_USER_TOKEN")
@@ -25,21 +26,13 @@ class VinylSnekClient:
             "User-Agent": "VinylSnek/0.1",
         }
 
-    def get_id_by_barcodes(self, barcodes: list[str]) -> list[int] | None:
-        ids = []
-        for code in barcodes:
-            results = (
-                requests.get(
-                    self.api_base_url + "/database/search",
-                    params={"barcode": code},
-                    headers=self.headers,
-                )
-                .json()
-                .get("results", [])
-            )
-            if results:
-                ids.append(results[0].get("id"))  # Pick first :D
-        return ids
+    def search_by_barcode(self, barcode: str) -> list[int]:
+        results = requests.get(
+            self.api_base_url + "/database/search",
+            params={"barcode": barcode},
+            headers=self.headers,
+        ).json()
+        return results
 
     def get_release_by_id(self, release_id: int) -> dict[str, str]:
         release = requests.get(
@@ -54,9 +47,8 @@ class VinylSnekClient:
         )
         if response.status_code == 200:
             data = response.json()
-            return data.get("lowest_price", {}).get("value")
-        else:
-            print(response.status_code, response.text)
+            if lowest_price := data.get("lowest_price", {}):
+                return lowest_price.get("value")
 
     def from_release(self, release: dict[str, str]) -> "ReleaseInfo":
         descriptions: list[str] = []
@@ -76,7 +68,7 @@ class VinylSnekClient:
                 release["cover_image"] = image["uri"]
                 break
 
-        print(f"{release['artists'][0]['name']} - {release['title']}")
+        # print(f"{release['artists'][0]['name']} - {release['title']}")
         return ReleaseInfo(
             title=release.get("title"),
             artists=[artist.get("name") for artist in release.get("artists", [])],

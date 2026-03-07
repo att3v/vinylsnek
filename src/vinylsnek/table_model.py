@@ -4,14 +4,13 @@ from PyQt6.QtCore import QAbstractTableModel, Qt
 class RecordModel(QAbstractTableModel):
     def __init__(self, records):
         super().__init__()
-        # print(records)
         self.records_list: list[dict[str, str | int | float]] = records
         self.headers = [
             "Artist",
             "Album",
             "Year",
             "Description",
-            "Lowest Price (Discogs)",
+            "Lowest Price",
         ]
 
     def rowCount(self, parent=None):
@@ -69,3 +68,53 @@ class RecordModel(QAbstractTableModel):
         self.layoutAboutToBeChanged.emit()
         self.records_list.sort(key=key, reverse=reverse)
         self.layoutChanged.emit()
+
+
+class ReleaseCandidateModel(QAbstractTableModel):
+
+    def __init__(self, records):
+        super().__init__()
+        # print(records)
+        self.records_list: list[dict[str, str | int | float]] = records
+        self.headers = [
+            "Title",
+            "Country",
+            "Year",
+            "Discogs Release ID",
+        ]
+
+    def as_dict(self):
+        return {
+            "records_list": self.records_list,
+            "headers": self.headers,
+        }
+
+    def rowCount(self, parent=None):
+        return len(self.records_list)
+
+    def columnCount(self, parent=None):
+        return len(self.headers)
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if (
+            role == Qt.ItemDataRole.DisplayRole
+            and orientation == Qt.Orientation.Horizontal
+        ):
+            if 0 <= section < len(self.headers):
+                return self.headers[section]
+        return None
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            record = self.records_list[index.row()]
+            col = index.column()
+
+            if col == 0:
+                return record["title"]
+            if col == 1:
+                return record["country"]
+            elif col == 2:
+                return str(record["year"])
+            elif col == 3:
+                return str(record["discogs_release_id"])
+        return None

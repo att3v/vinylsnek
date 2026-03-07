@@ -32,30 +32,30 @@ class VinylSnekDatabase:
         self.engine = engine
         self.snek = VinylSnekClient(USER_TOKEN)
 
-    def add_vinyl(self, barcodes: list[str]) -> None:
-        release_ids = self.snek.get_id_by_barcodes(barcodes)
-        records = []
+    def query_for_barcode(self, barcode: str) -> list[int]:
+        return self.snek.search_by_barcode(barcode)
 
-        if release_ids:
-            for release_id in release_ids:
-                release_info = self.snek.get_release_by_id(release_id)
-                record = Record(
-                    artist=", ".join(release_info.artists),
-                    album=release_info.title,
-                    year=release_info.year,
-                    description=", ".join(release_info.description),
-                    lowest_price_discogs=release_info.lowest_price_discogs,
-                    discogs_release_id=release_info.discogs_release_id,
-                    date_purchased=date.today(),
-                    release_cover_url=release_info.record_cover_url,
-                    discogs_url=release_info.discogs_url,
-                )
-                records.append(record)
+    def add_vinyl(self, release_id: int) -> None:
+        release_info = self.snek.get_release_by_id(release_id)
+        if release_info:
+            record = Record(
+                artist=", ".join(release_info.artists),
+                album=release_info.title,
+                year=release_info.year,
+                description=", ".join(release_info.description),
+                lowest_price_discogs=release_info.lowest_price_discogs,
+                discogs_release_id=release_info.discogs_release_id,
+                date_purchased=date.today(),
+                release_cover_url=release_info.record_cover_url,
+                discogs_url=release_info.discogs_url,
+            )
 
-        with Session(self.engine) as session:
-            for record in records:
+            with Session(self.engine) as session:
                 session.add(record)
-            session.commit()
+                session.commit()
+
+        else:
+            print(f"Release with ID {release_id} not found in Discogs.")
 
     def delete_vinyl(self, discogs_release_id: int) -> None:
         with Session(self.engine) as session:

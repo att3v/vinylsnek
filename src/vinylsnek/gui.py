@@ -3,21 +3,14 @@ import webbrowser
 import qdarktheme
 import requests
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QFont
-from PyQt6.QtWidgets import (
-    QApplication,
-    QDialog,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QPushButton,
-    QTableView,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel,
+                             QLineEdit, QMainWindow, QPushButton, QTableView,
+                             QVBoxLayout, QWidget)
 
+from .client import ReleaseInfo
 from .database import VinylSnekDatabase
+from .table_model import ReleaseCandidateModel
 
 INFO_FIELD_TRANSLATIONS = {
     "album": "Album",
@@ -30,9 +23,25 @@ INFO_FIELD_TRANSLATIONS = {
 }
 
 
+def list_as_table_model(releases: list[ReleaseInfo]):
+    return ReleaseCandidateModel(
+        [
+            {
+                "title": record["title"],
+                "country": record["country"],
+                "year": record["year"],
+                "discogs_release_id": record["discogs_release_id"],
+                "discogs_url": record["discogs_url"],
+            }
+            for record in releases
+        ]
+    )
+
+
 class AddRecordDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, db: VinylSnekDatabase, parent=None):
         super().__init__(parent)
+        self.db = db
         self.setWindowTitle("Add Record")
         self.setGeometry(200, 200, 400, 150)
 
@@ -51,6 +60,35 @@ class AddRecordDialog(QDialog):
 
     def get_barcode(self):
         return self.barcode_input.text()
+
+    def get_matching_releases(self):
+        barcode = self.get_barcode()
+        return self.db.query_for_barcode(barcode)
+
+
+class ChooseRecordDialog(QDialog):
+    def __init__(self, records, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Choose Record")
+        self.setGeometry(200, 200, 400, 300)
+
+        layout = QVBoxLayout()
+
+        label = QLabel("Multiple records found. Please choose one:")
+        layout.addWidget(label)
+
+        self.table_view = QTableView()
+        self.table_view.setWordWrap(True)
+        self.table_view.setModel(records)
+        self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        layout.addWidget(self.table_view)
+
+        submit_button = QPushButton("Submit")
+        submit_button.clicked.connect(self.accept)
+        layout.addWidget(submit_button)
+
+        self.setLayout(layout)
 
 
 class RecordDetailsDialog(QDialog):
@@ -218,10 +256,46 @@ class MainWindow(QMainWindow):
         self.detail_windows.append(dialog)
 
     def open_add_record_dialog(self):
-        dialog = AddRecordDialog(self)
+        dialog = AddRecordDialog(self.db, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            barcode = dialog.get_barcode()
-            self.db.add_vinyl([barcode])
+            results = dialog.get_matching_releases()
+            pagination = results.get("pagination", {})
+            results = results.get("results", [])
+            if not pagination or pagination.get("items", 0) == 0:
+                error_dialog = QDialog(self)
+                error_dialog.setWindowTitle("Error")
+                error_layout = QVBoxLayout()
+                error_label = QLabel("No records found for the given barcode.")
+                error_layout.addWidget(error_label)
+                close_button = QPushButton("Close")
+                close_button.clicked.connect(error_dialog.close)
+                error_layout.addWidget(close_button)
+                error_dialog.setLayout(error_layout)
+                error_dialog.exec()
+                return
+            elif pagination.get("items", 0) > 1 and results:
+                records = []
+                for release in results:
+                    record_info = {
+                        "title": release.get("title"),
+                        "country": release.get("country"),
+                        "year": release.get("year"),
+                        "discogs_release_id": release.get("id"),
+                        "discogs_url": release.get("resource_url"),
+                    }
+                    records.append(record_info)
+
+                records_model = list_as_table_model(records)
+                choose_dialog = ChooseRecordDialog(records_model, self)
+                if choose_dialog.exec() == QDialog.DialogCode.Accepted:
+                    selected_index = choose_dialog.table_view.currentIndex()
+                    selected_row = selected_index.row()
+                    selected_release_id = records_model.records_list[selected_row][
+                        "discogs_release_id"
+                    ]
+                    self.db.add_vinyl(selected_release_id)
+            else:
+                self.db.add_vinyl(results[0]["id"])
 
             updated_records = self.db.as_table_model()
             new_records = [
