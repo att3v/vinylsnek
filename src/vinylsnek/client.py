@@ -80,19 +80,3 @@ class VinylSnekClient:
             record_cover_url=release.get("cover_image"),
             discogs_url="https://www.discogs.com/release/" + str(release.get("id")),
         )
-
-
-if __name__ == "__main__":
-    vinyl_snek_client = VinylSnekClient(USER_TOKEN)
-    release_id = vinyl_snek_client.get_id_by_barcode("8024391152973")
-    if release_id:
-        release_info = vinyl_snek_client.get_release_by_id(release_id)
-        print(release_info.model_dump_json(indent=4))
-        release_id = vinyl_snek_client.get_id_by_barcode("196588441219")
-    if release_id:
-        release_info = vinyl_snek_client.get_release_by_id(release_id)
-        print(release_info.model_dump_json(indent=4))
-        release_id = vinyl_snek_client.get_id_by_barcode("198029239119")
-    if release_id:
-        release_info = vinyl_snek_client.get_release_by_id(release_id)
-        print(release_info.model_dump_json(indent=4))
