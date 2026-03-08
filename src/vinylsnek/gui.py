@@ -7,6 +7,7 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel,
                              QLineEdit, QMainWindow, QPushButton, QTableView,
                              QVBoxLayout, QWidget)
+from pydantic_core import ValidationError
 
 from .client import ReleaseInfo
 from .database import VinylSnekDatabase
@@ -70,7 +71,8 @@ class ChooseRecordDialog(QDialog):
     def __init__(self, records, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Choose Record")
-        self.setGeometry(200, 200, 400, 300)
+        self.setGeometry(200, 200, 700, 500)
+        self.setMinimumSize(400, 300)
 
         layout = QVBoxLayout()
 
@@ -82,6 +84,10 @@ class ChooseRecordDialog(QDialog):
         self.table_view.setModel(records)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.table_view.horizontalHeader().setStretchLastSection(True)
+        self.table_view.setStyleSheet("QTableView::item { padding: 6px 10px; }")
+        self.table_view.resizeColumnsToContents()
+        self.table_view.resizeRowsToContents()
         layout.addWidget(self.table_view)
 
         submit_button = QPushButton("Submit")
@@ -204,6 +210,7 @@ class MainWindow(QMainWindow):
         self.detail_windows = []
         self.setWindowTitle("VinylSnek")
         self.setGeometry(100, 100, 1000, 600)
+        self.setMinimumSize(600, 200)
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -293,7 +300,21 @@ class MainWindow(QMainWindow):
                     selected_release_id = records_model.records_list[selected_row][
                         "discogs_release_id"
                     ]
-                    self.db.add_vinyl(selected_release_id)
+                    try:
+                        self.db.add_vinyl(selected_release_id)
+                    except ValidationError:
+                        error_dialog = QDialog(self)
+                        error_dialog.setWindowTitle("Error")
+                        error_layout = QVBoxLayout()
+                        error_label = QLabel(
+                            "Discogs data is bad. This record does not seem to have a valid release ID."
+                        )
+                        error_layout.addWidget(error_label)
+                        close_button = QPushButton("Close")
+                        close_button.clicked.connect(error_dialog.close)
+                        error_layout.addWidget(close_button)
+                        error_dialog.setLayout(error_layout)
+                        error_dialog.exec()
             else:
                 self.db.add_vinyl(results[0]["id"])
 
