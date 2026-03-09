@@ -20,6 +20,7 @@ INFO_FIELD_TRANSLATIONS = {
     "lowest_price_discogs": "Lowest Price (Discogs)",
     "description": "Description",
     "discogs_release_id": "Discogs Release ID",
+    "format": "Format",
     "discogs_url": "",
 }
 

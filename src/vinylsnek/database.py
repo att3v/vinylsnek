@@ -17,6 +17,7 @@ class Record(Base):
     artist = Column(String, nullable=False)
     album = Column(String, nullable=False)
     year = Column(Integer)
+    format = Column(String)
     description = Column(String)
     lowest_price_discogs = Column(Float)
     discogs_release_id = Column(Integer)
@@ -42,6 +43,7 @@ class VinylSnekDatabase:
                 artist=", ".join(release_info.artists),
                 album=release_info.title,
                 year=release_info.year,
+                format=release_info.format,
                 description=", ".join(release_info.description),
                 lowest_price_discogs=release_info.lowest_price_discogs,
                 discogs_release_id=release_info.discogs_release_id,
@@ -68,31 +70,6 @@ class VinylSnekDatabase:
                 session.delete(record)
                 session.commit()
 
-    def print_table(self) -> None:
-        headers = [
-            "Artist",
-            "Album",
-            "Year",
-            "Description",
-            "Lowest Price (Discogs)",
-            "Discogs Release ID",
-        ]
-        content = []
-        with Session(self.engine) as session:
-            records = session.query(Record).all()
-            for record in records:
-                content.append(
-                    [
-                        record.artist,
-                        record.album,
-                        record.year,
-                        record.description,
-                        record.lowest_price_discogs,
-                        record.discogs_release_id,
-                    ]
-                )
-        print(tabulate(content, headers=headers, tablefmt="fancy_grid"))
-
     def as_table_model(self):
         with Session(self.engine) as session:
             records = session.query(Record).all()
@@ -102,6 +79,7 @@ class VinylSnekDatabase:
                         "artist": record.artist,
                         "album": record.album,
                         "year": record.year,
+                        "format": record.format,
                         "description": record.description.replace(", ", "\n"),
                         "lowest_price_discogs": record.lowest_price_discogs,
                         "discogs_release_id": record.discogs_release_id,

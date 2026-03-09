@@ -9,6 +9,7 @@ class RecordModel(QAbstractTableModel):
             "Artist",
             "Album",
             "Year",
+            "Format",
             "Description",
             "Lowest Price",
         ]
@@ -40,8 +41,10 @@ class RecordModel(QAbstractTableModel):
             elif col == 2:
                 return str(record["year"])
             elif col == 3:
-                return record["description"]
+                return record["format"] or "N/A"
             elif col == 4:
+                return record["description"]
+            elif col == 5:
                 return (
                     f"{record['lowest_price_discogs']:.2f}€"
                     if record["lowest_price_discogs"]

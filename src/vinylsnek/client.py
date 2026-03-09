@@ -11,6 +11,7 @@ class ReleaseInfo(BaseModel):
     artists: list[str]
     year: int
     styles: list[str]
+    format: str | None
     description: list[str]
     lowest_price_discogs: float | None
     discogs_release_id: int
@@ -74,6 +75,7 @@ class VinylSnekClient:
             artists=[artist.get("name") for artist in release.get("artists", [])],
             year=release.get("year"),
             styles=release.get("styles", []),
+            format=release.get("formats", [{}])[0].get("name"),
             description=descriptions,
             lowest_price_discogs=self.get_release_lowest_price(release.get("id")),
             discogs_release_id=release.get("id"),
