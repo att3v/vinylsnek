@@ -2,7 +2,6 @@ from datetime import date
 
 from sqlalchemy import Column, Date, Float, Integer, String, create_engine
 from sqlalchemy.orm import Session, declarative_base
-from tabulate import tabulate
 
 from .client import USER_TOKEN, VinylSnekClient
 from .table_model import RecordModel
