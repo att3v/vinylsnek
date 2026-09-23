@@ -1,9 +1,9 @@
-from datetime import date
+from datetime import datetime
 
-from sqlalchemy import Column, Date, Float, Integer, String, create_engine
+from sqlalchemy import BLOB, Column, Date, Float, Integer, String, create_engine
 from sqlalchemy.orm import Session, declarative_base
 
-from .client import USER_TOKEN, VinylSnekClient
+from .client import USER_TOKEN, MusicBrainzClient, VinylSnekClient
 from .table_model import RecordModel
 
 Base = declarative_base()
@@ -21,8 +21,8 @@ class Record(Base):
     lowest_price_discogs = Column(Float)
     discogs_release_id = Column(Integer)
     date_purchased = Column(Date)
-    release_cover_url = Column(String)
     discogs_url = Column(String)
+    cover_image = Column(BLOB)
 
 
 class VinylSnekDatabase:
@@ -31,6 +31,7 @@ class VinylSnekDatabase:
         Base.metadata.create_all(engine)
         self.engine = engine
         self.snek = VinylSnekClient(USER_TOKEN)
+        self.brainz = MusicBrainzClient()
 
     def query_for_barcode(self, barcode: str) -> list[int]:
         return self.snek.search_by_barcode(barcode)
@@ -38,6 +39,12 @@ class VinylSnekDatabase:
     def add_vinyl(self, release_id: int) -> None:
         release_info = self.snek.get_release_by_id(release_id)
         if release_info:
+            mbid = self.brainz.get_id_by_names(
+                release_info.title, release_info.artists[0]
+            )
+            if mbid:
+                cover_image = self.brainz.get_cover_by_id(mbid)
+                release_info.cover_image = cover_image
             record = Record(
                 artist=", ".join(release_info.artists),
                 album=release_info.title,
@@ -46,9 +53,9 @@ class VinylSnekDatabase:
                 description=", ".join(release_info.description),
                 lowest_price_discogs=release_info.lowest_price_discogs,
                 discogs_release_id=release_info.discogs_release_id,
-                date_purchased=date.today(),
-                release_cover_url=release_info.record_cover_url,
+                date_purchased=datetime.now(datetime.timezone.utc).date(),
                 discogs_url=release_info.discogs_url,
+                cover_image=release_info.cover_image,
             )
 
             with Session(self.engine) as session:
@@ -82,8 +89,8 @@ class VinylSnekDatabase:
                         "description": record.description.replace(", ", "\n"),
                         "lowest_price_discogs": record.lowest_price_discogs,
                         "discogs_release_id": record.discogs_release_id,
-                        "record_cover_url": record.release_cover_url,
                         "discogs_url": record.discogs_url,
+                        "cover_image": record.cover_image,
                     }
                     for record in records
                 ]

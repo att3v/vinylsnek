@@ -15,7 +15,7 @@ class ReleaseInfo(BaseModel):
     description: list[str]
     lowest_price_discogs: float | None
     discogs_release_id: int
-    record_cover_url: str | None
+    cover_image: bytes | None = None
     discogs_url: str | None = None
 
 
@@ -24,7 +24,7 @@ class VinylSnekClient:
         self.api_base_url = "https://api.discogs.com"
         self.headers = {
             "Authorization": f"Discogs token={user_token}",
-            "User-Agent": "VinylSnek/0.1",
+            "User-Agent": "VinylSnek/0.1 (GitHub: att3v)",
         }
 
     def search_by_barcode(self, barcode: str) -> list[int]:
@@ -82,3 +82,32 @@ class VinylSnekClient:
             record_cover_url=release.get("cover_image"),
             discogs_url="https://www.discogs.com/release/" + str(release.get("id")),
         )
+
+
+class MusicBrainzClient:
+    def __init__(self):
+        self.mb_base_url = "https://musicbrainz.org/ws/2"
+        self.caa_base_url = "https://coverartarchive.org/release"
+        self.headers = {
+            "User-Agent": "VinylSnek/0.1 (GitHub att3v)",
+        }
+
+    def get_id_by_names(self, album_name: str, artist_name: str) -> list[int] | None:
+        results = requests.get(
+            self.mb_base_url + "/release",
+            params={
+                "query": f'release:"{album_name}" artistname:"{artist_name}"',
+                "fmt": "json",
+            },
+        ).json()
+        if releases := results.get("releases"):
+            return releases[0]["id"]
+
+    def get_cover_by_id(self, mbid: str) -> bytes | None:
+        results = requests.get(
+            self.caa_base_url + f"/{mbid}/front",
+            params={"fmt": "json"},
+            headers=self.headers,
+        )
+        if results.status_code == 200:
+            return results.content

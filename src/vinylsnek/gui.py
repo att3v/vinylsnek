@@ -1,7 +1,6 @@
 import webbrowser
 
 import qdarktheme
-import requests
 from pydantic_core import ValidationError
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
@@ -119,15 +118,11 @@ class RecordDetailsDialog(QDialog):
         layout = QHBoxLayout()
 
         left_layout = QVBoxLayout()
-        if cover_url := record.get("record_cover_url"):
+        if cover := record.get("cover_image"):
             try:
-                headers = {
-                    "User-Agent": "VinylSnek/0.1 +https://github.com/att3v/vinylsnek"
-                }
-                response = requests.get(cover_url, timeout=5, headers=headers)
-                if response.status_code == 200:
+                if cover:
                     pixmap = QPixmap()
-                    pixmap.loadFromData(response.content)
+                    pixmap.loadFromData(cover)
                     if not pixmap.isNull():
                         cover_label = QLabel()
                         cover_label.setPixmap(
@@ -140,12 +135,10 @@ class RecordDetailsDialog(QDialog):
                         error_label = QLabel("Could not load cover art (invalid image)")
                         left_layout.addWidget(error_label)
                 else:
-                    error_label = QLabel(
-                        f"Failed to load image (HTTP {response.status_code})"
-                    )
+                    error_label = QLabel("No cover art available")
                     left_layout.addWidget(error_label)
-            except Exception as e:
-                error_label = QLabel(f"Could not load cover art: {str(e)}")
+            except Exception as e:  # noqa: BLE001
+                error_label = QLabel(f"Could not load cover art: {e!s}")
                 left_layout.addWidget(error_label)
         else:
             error_label = QLabel("No cover art available")
@@ -156,7 +149,7 @@ class RecordDetailsDialog(QDialog):
 
         right_layout = QVBoxLayout()
         for key, value in record.items():
-            if key in ["record_cover_url"]:
+            if key in ["cover_image"]:
                 continue
             detail_layout = QHBoxLayout()
             label = QLabel(f"{INFO_FIELD_TRANSLATIONS.get(key, key.capitalize())}")
